@@ -4,7 +4,14 @@ import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from app.database import initialize_database, save_trace, get_all_traces, get_trace_by_id, get_all_incidents
+from app.database import (
+    initialize_database,
+    save_trace,
+    get_all_traces,
+    get_trace_by_id,
+    get_all_incidents,
+    resolve_incident
+)
 from app.incident_detector import create_incident
 
 AUTH = "http://127.0.0.1:8001"
@@ -132,3 +139,16 @@ def trace_detail(trace_id: str):
 def list_incidents():
     incidents = get_all_incidents()
     return {"total_incidents": len(incidents), "incidents": incidents}
+
+@app.patch("/api/v1/incidents/{incident_id}/resolve")
+def mark_incident_resolved(incident_id: str):
+    updated = resolve_incident(incident_id)
+
+    if not updated:
+        raise HTTPException(status_code=404, detail="Incident not found")
+
+    return {
+        "message": "Incident resolved successfully.",
+        "incident_id": incident_id,
+        "status": "resolved"
+    }

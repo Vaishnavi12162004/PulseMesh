@@ -31,6 +31,24 @@ export default function App(){
    setMessage(data.message);setSelected(data.trace);await refresh()
   }catch(err){setMessage(err.message)}finally{setBusy(false)}
  }
+ async function resolveIncident(id) {
+  try {
+    const response = await fetch(
+      `/api/v1/incidents/${encodeURIComponent(id)}/resolve`,
+      { method: 'PATCH' }
+    )
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.detail || 'Could not resolve incident.')
+    }
+
+    await refresh()
+  } catch (err) {
+    setError(err.message)
+  }
+}
  async function openTrace(id){
   try{const r=await fetch(`/api/v1/traces/${encodeURIComponent(id)}`);if(!r.ok)throw new Error('Trace not found');setSelected(await r.json());setTab('Traces')}
   catch(e){setError(e.message)}
@@ -43,7 +61,8 @@ export default function App(){
  return <div className="shell">
   <aside className="sidebar"><div className="brand"><div className="logo"><Activity/></div><div><b>PulseMesh</b><small>OBSERVABILITY</small></div></div>
    <div className="side-label">WORKSPACE</div><div className="workspace"><span>P</span><div><b>PulseMesh Demo</b><small>Local environment</small></div></div>
-   <div className="side-label">MONITOR</div>{nav.map(n=><button key={n} className={`nav ${tab===n?'active':''}`} onClick={()=>setTab(n)}>{n==='Overview'?<Activity size={17}/>:n==='Traces'?<Clock3 size={17}/>:<AlertTriangle size={17}/>} {n}{n==='Incidents'&&incidents.length>0&&<em>{incidents.length}</em>}</button>)}
+   <div className="side-label">MONITOR</div>{nav.map(n=><button key={n} className={`nav ${tab===n?'active':''}`} onClick={()=>setTab(n)}>{n==='Overview'?<Activity size={17}/>:n==='Traces'?<Clock3 size={17}/>:<AlertTriangle size={17}/>} {n}{n==='Incidents'&&incidents.filter(i=>i.status==='open').length>0&&
+ <em>{incidents.filter(i=>i.status==='open').length}</em>}</button>)}
    <div className="side-bottom"><span className="green-dot"/> All systems monitored<small>PulseMesh v1.0.0 · Demo</small></div>
   </aside>
   <main><header><div>Workspace <span>/</span> <b>{tab}</b></div><div className="top-right"><label><i/> LOCAL</label><button className="refresh" onClick={refresh} title="Refresh"><RefreshCw size={16}/></button><span className="avatar">PM</span></div></header>
@@ -62,8 +81,50 @@ export default function App(){
     <section className="panel"><PanelTitle title="Slowest checkout traces" sub="Requests with the highest end-to-end duration"/><TraceTable traces={slow} open={openTrace}/></section>
    </>}
    {tab==='Traces'&&<section className="panel"><div className="panel-head"><PanelTitle title="Request traces" sub="Inspect the path and timing of each checkout request"/><div className="search"><Search size={15}/><input placeholder="Search trace ID or status" value={search} onChange={e=>setSearch(e.target.value)}/></div></div><TraceTable traces={filtered} open={openTrace}/>{selected&&<TraceDetails trace={selected} close={()=>setSelected(null)}/>}</section>}
-   {tab==='Incidents'&&<section className="panel"><PanelTitle title="Incident timeline" sub="Issues detected during demo checkout requests"/>{incidents.length?incidents.map(i=><div className="incident-row" key={i.incident_id}><div className={`incident-symbol ${i.severity}`}><AlertTriangle size={17}/></div><div className="incident-info"><b>{i.incident_type.replaceAll('_',' ')} <span className={i.severity}>{i.severity}</span></b><p>{i.description}</p><small>{i.service_name} · {date(i.created_at)}</small></div><Status value={i.status}/></div>):<div className="empty large"><CheckCircle2 size={28}/><b>No incidents yet</b><span>Simulated service failures will appear here.</span></div>}</section>}
-   <footer>© 2026 PulseMesh <span><i/> Operational demo environment</span></footer>
+{tab==='Incidents'&&
+ <section className="panel">
+  <PanelTitle
+   title="Incident timeline"
+   sub="Issues detected during demo checkout requests"
+  />
+
+  {incidents.length ? incidents.map(i => (
+   <div className="incident-row" key={i.incident_id}>
+    <div className={`incident-symbol ${i.severity}`}>
+     <AlertTriangle size={17}/>
+    </div>
+
+    <div className="incident-info">
+     <b>
+      {i.incident_type.replaceAll('_',' ')}
+      <span className={i.severity}>{i.severity}</span>
+     </b>
+     <p>{i.description}</p>
+     <small>{i.service_name} · {date(i.created_at)}</small>
+    </div>
+
+    <div className="incident-actions">
+     <Status value={i.status}/>
+
+     {i.status === 'open' && (
+      <button
+       className="resolve-button"
+       onClick={() => resolveIncident(i.incident_id)}
+      >
+       Mark resolved
+      </button>
+     )}
+    </div>
+   </div>
+  )) : (
+   <div className="empty large">
+    <CheckCircle2 size={28}/>
+    <b>No incidents yet</b>
+    <span>Simulated service failures will appear here.</span>
+   </div>
+  )}
+ </section>
+}   <footer>© 2026 PulseMesh <span><i/> Operational demo environment</span></footer>
    </div>
   </main>
  </div>

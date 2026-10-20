@@ -43,3 +43,12 @@ def save_incident(i):
 def get_all_incidents():
     with connect() as con:
         return [dict(r) for r in con.execute("SELECT * FROM incidents ORDER BY created_at DESC").fetchall()]
+
+
+def resolve_incident(incident_id):
+    with connect() as con:
+        cursor = con.execute(
+            "UPDATE incidents SET status = ? WHERE incident_id = ?",
+            ("resolved", incident_id)
+        )
+        return cursor.rowcount > 0
