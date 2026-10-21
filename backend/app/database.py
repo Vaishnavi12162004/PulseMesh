@@ -1,13 +1,15 @@
-import json, sqlite3
+import json, sqlite3, os
 from pathlib import Path
 
-DB = Path(__file__).resolve().parent / "pulsemesh.db"
-
+DB = Path(os.getenv(
+    "DATABASE_PATH",
+    str(Path(__file__).resolve().parent / "pulsemesh.db")
+))
 def connect():
+    DB.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(DB)
     con.row_factory = sqlite3.Row
     return con
-
 def initialize_database():
     with connect() as con:
         con.execute("""CREATE TABLE IF NOT EXISTS traces (

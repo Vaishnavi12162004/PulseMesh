@@ -1,7 +1,7 @@
 import {useCallback,useEffect,useMemo,useState} from 'react'
 import {Activity,AlertTriangle,ArrowUpRight,CheckCircle2,Clock3,CreditCard,RefreshCw,Search,Server,ShieldCheck,Zap,X} from 'lucide-react'
 import './App.css'
-
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 const money = n => new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(Number(n||0))
 const date = d => d ? new Date(d).toLocaleString() : '—'
 
@@ -13,7 +13,7 @@ export default function App(){
 
  const refresh=useCallback(async()=>{
   try{
-   const rs=await Promise.all([fetch('/api/v1/services/status'),fetch('/api/v1/traces'),fetch('/api/v1/incidents')])
+   const rs=await Promise.all([fetch(`${API_BASE}/api/v1/services/status`),fetch(`${API_BASE}/api/v1/traces`),fetch(`${API_BASE}/api/v1/incidents`)])
    if(rs.some(r=>!r.ok)) throw new Error('API error. Check that all backend services are running.')
    const [s,t,i]=await Promise.all(rs.map(r=>r.json()))
    setServices(s.services||[]);setTraces(t.traces||[]);setIncidents(i.incidents||[])
@@ -26,7 +26,7 @@ export default function App(){
   e.preventDefault();if(!Number.isFinite(Number(amount))||Number(amount)<=0){setMessage('Enter an amount greater than zero.');return}
   setBusy(true);setMessage('')
   try{
-   const r=await fetch('/api/v1/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:Number(amount),simulate_payment_failure:fail})})
+   const r=await fetch(`${API_BASE}/api/v1/checkout`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:Number(amount),simulate_payment_failure:fail})})
    const data=await r.json();if(!r.ok)throw new Error(data.detail||'Checkout request failed.')
    setMessage(data.message);setSelected(data.trace);await refresh()
   }catch(err){setMessage(err.message)}finally{setBusy(false)}
@@ -34,10 +34,9 @@ export default function App(){
  async function resolveIncident(id) {
   try {
     const response = await fetch(
-      `/api/v1/incidents/${encodeURIComponent(id)}/resolve`,
-      { method: 'PATCH' }
-    )
-
+  `${API_BASE}/api/v1/incidents/${encodeURIComponent(id)}/resolve`,
+  { method: 'PATCH' }
+)
     const data = await response.json()
 
     if (!response.ok) {

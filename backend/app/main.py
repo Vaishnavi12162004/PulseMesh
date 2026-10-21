@@ -1,4 +1,4 @@
-import asyncio, time, uuid
+import asyncio, time, uuid, os
 from datetime import datetime, timezone
 import httpx
 from fastapi import FastAPI, HTTPException
@@ -14,12 +14,21 @@ from app.database import (
 )
 from app.incident_detector import create_incident
 
-AUTH = "http://127.0.0.1:8001"
-PAYMENT = "http://127.0.0.1:8002"
+AUTH = os.getenv("AUTH_SERVICE_URL", "http://127.0.0.1:8001")
+PAYMENT = os.getenv("PAYMENT_SERVICE_URL", "http://127.0.0.1:8002")
 app = FastAPI(title="PulseMesh API", version="1.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-                   allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+origins = os.getenv(
+    "CORS_ORIGINS",
+    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174"
+).split(",")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[origin.strip() for origin in origins],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 @app.on_event("startup")
 def startup():
     initialize_database()
