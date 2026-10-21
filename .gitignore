@@ -18,3 +18,9 @@ dist/
 # Editor and operating system
 .vscode/
 .DS_Store
+.env.*
+!.env.example
+
+*.log
+.DS_Store
+Thumbs.db
